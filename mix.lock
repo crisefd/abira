@@ -1,0 +1,4 @@
+%{
+  "array": {:hex, :array, "1.0.1", "c0ae92d35e891e56f80b605b77c2dba6972302f7716719eee0b5417162c695b0", [:mix], [], "hexpm"},
+  "sfmt": {:hex, :sfmt, "0.13.0", "5a576f6a5c27ed5a8fd424a4f02e8c5e8dddc2d4b8ca2170961fa155aa5bf400", [:make], [], "hexpm"},
+}
