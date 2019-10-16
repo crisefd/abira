@@ -21,7 +21,8 @@ defmodule Abira.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:sfmt, "~> 0.13.0"}
+      {:sfmt, "~> 0.13.0"},
+      {:map_array, git: "https://github.com/crisefd/map_array"}
     ]
   end
 end

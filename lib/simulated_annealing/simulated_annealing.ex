@@ -2,7 +2,7 @@ defmodule SimulatedAnnealing do
   @moduledoc """
     Basic implementation of the simulated annealing algorithm
     for solving TSP problems. Tested with this set of problems:
-    http://elib.zib.de/pub/mp-testdata/tsp/
+   http://elib.zib.de/pub/mp-testdata/tsp/tsplib/tsp/index.html
   """
 
   @spec run(List.t(), Float.t(), Float.t(), Float.t()) :: Tuple.t()
@@ -24,18 +24,18 @@ defmodule SimulatedAnnealing do
         max_temperature \\ 100_000.0,
         cooling_rate \\ 0.98
       ) do
-    points = :array.from_list(problem_configuration)
-    best = search(points, max_iterations, max_temperature, cooling_rate)
+    problem_size = length(problem_configuration)
+    points = MapArray.from_list(problem_configuration)
+    best = search(points, max_iterations, max_temperature, cooling_rate, problem_size)
 
     {
       best[:cost],
-      best[:array] |> :array.to_list()
+      best[:array]
     }
   end
 
-  def search(points, max_iterations, max_temperature, cooling_rate) do
-    initial_permutation = random_permutation(:array.size(points))
-
+  def search(points, max_iterations, max_temperature, cooling_rate, problem_size) do
+    initial_permutation = random_permutation(problem_size)
     current = [
       array: initial_permutation,
       cost: cost(initial_permutation, points)
@@ -55,6 +55,7 @@ defmodule SimulatedAnnealing do
   end
 
   defp euc_2d(point1, point2) do
+    # IO.puts "point1 = #{inspect point1} point2 = #{inspect point2}"
     :math.sqrt(
       ((elem(point1, 0) - elem(point2, 0)) |> :math.pow(2)) +
         ((elem(point1, 1) - elem(point2, 1)) |> :math.pow(2))
@@ -63,17 +64,18 @@ defmodule SimulatedAnnealing do
   end
 
   defp cost(permutation, points) do
-    permutation_size = :array.size(permutation)
+    permutation_size = MapArray.size(permutation)
+    IO.puts "permutation_size = #{permutation_size}"
     cost(permutation, points, 0, permutation_size, 0)
   end
 
   defp cost(permutation, points, index, permutation_size, distance)
        when index == permutation_size - 1 do
-    p1 = :array.get(index, permutation)
-    p2 = :array.get(0, permutation)
-    x = :array.get(p1, points)
-    y = :array.get(p2, points)
-
+    p1 = permutation[index]
+    p2 = permutation[0]
+    x = points[p1]
+    y = points[p2]
+    # IO.puts "index = #{index} permutation_size = #{permutation_size}"
     distance +
       euc_2d(
         x,
@@ -83,32 +85,32 @@ defmodule SimulatedAnnealing do
 
   defp cost(permutation, points, index, permutation_size, distance)
        when index < permutation_size - 1 do
-    p1 = :array.get(index, permutation)
-    p2 = :array.get(index + 1, permutation)
-    x = :array.get(p1, points)
-    y = :array.get(p2, points)
-
-    cost(
-      permutation,
-      points,
-      index + 1,
-      permutation_size,
-      distance +
-        euc_2d(
-          x,
-          y
-        )
-    )
+     p1 = permutation[index]
+     p2 = permutation[index + 1]
+     x = points[p1]
+     y = points[p2]
+     # IO.puts "index = #{index}  permutation_size = #{permutation_size}"
+     cost(
+        permutation,
+        points,
+        index + 1,
+        permutation_size,
+        distance +
+          euc_2d(
+            x,
+            y
+          )
+      )
   end
 
   defp random_permutation(size) do
     0..size
     |> Enum.map(fn _ -> round(:sfmt.uniform() * (size - 1)) end)
-    |> :array.from_list()
+    |> MapArray.from_list()
   end
 
   defp stochastic_two_opt(permutation) do
-    size = :array.size(permutation)
+    size = MapArray.size(permutation)
     p1 = round(:sfmt.uniform() * (size - 1))
     x = if p1 == 0, do: size - 1, else: p1 - 1
     y = if p1 == size - 1, do: 0, else: p1 + 1
@@ -135,11 +137,11 @@ defmodule SimulatedAnnealing do
   end
 
   defp change_permutation(p1, p2, ari) do
-    list = ari |> :array.to_list()
-    segment = list |> Enum.slice(p1..p2) |> Enum.reverse()
+    first  = ari |> MapArray.slice(0, p1)
+    second = ari |> MapArray.slice(p1 + 1, p2) |> MapArray.reverse()
+    third =  ari |> MapArray.slice(p2 + 1, MapArray.size(ari) - 1)
 
-    ((list |> Enum.take(p1)) ++ segment ++ (list |> Enum.drop(p2 + 1)))
-    |> :array.from_list()
+    first |> Map.merge(second) |> Map.merge(third)
   end
 
   defp return_valid_p(to_exclude, value, limit) do
